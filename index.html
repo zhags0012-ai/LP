@@ -9,6 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -28,17 +30,39 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* Latar Belakang Ambient Modern untuk Light & Dark Mode */
+    body.app-ambient-bg {
+      background-color: #f1f5f9;
+      background-image:
+        radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.10) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 55%);
+      background-attachment: fixed;
+    }
+    html.dark body.app-ambient-bg {
+      background-color: #020617;
+      background-image:
+        radial-gradient(at 0% 0%, rgba(13, 148, 136, 0.16) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(15, 23, 42, 0.9) 0px, transparent 55%);
+      background-attachment: fixed;
+    }
+
     .glass-card {
-      background: rgba(15, 23, 42, 0.72);
+      background: rgba(15, 23, 42, 0.74);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     html:not(.dark) .glass-card {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(203, 213, 225, 0.85);
+      box-shadow: 0 6px 24px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
     }
+
+    /* Penyesuaian Warna Teks & Permukaan dalam Mode Terang (Light Mode) */
     html:not(.dark) .text-white {
       color: #0f172a;
     }
@@ -48,6 +72,35 @@
     html:not(.dark) .text-slate-400 {
       color: #64748b;
     }
+    html:not(.dark) .border-white\/10,
+    html:not(.dark) .border-white\/5 {
+      border-color: rgba(203, 213, 225, 0.75);
+    }
+    html:not(.dark) .surface-subtle {
+      background-color: #f1f5f9;
+      border-color: #e2e8f0;
+    }
+    html.dark .surface-subtle {
+      background-color: rgba(30, 41, 59, 0.55);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+    html:not(.dark) .btn-surface {
+      background-color: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+    }
+    html:not(.dark) .btn-surface:hover {
+      background-color: #e2e8f0;
+    }
+    html.dark .btn-surface {
+      background-color: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    html.dark .btn-surface:hover {
+      background-color: rgba(51, 65, 85, 0.9);
+    }
+
     /* Pertahankan warna teks putih pada tombol berlatar gelap/brand */
     html:not(.dark) .bg-brand-600,
     html:not(.dark) .bg-emerald-600,
@@ -79,59 +132,64 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300 selection:bg-brand-500 selection:text-white">
+<body class="app-ambient-bg text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300 selection:bg-brand-500 selection:text-white">
 
-  <!-- ==================== TOAST NOTIFICATION ==================== -->
-  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-xs w-full"></div>
 
-  <!-- ==================== 1. SETUP SCREEN (PENDAFTARAN TOKO BARU) ==================== -->
-  <div id="setupScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-3xl overflow-y-auto hidden">
-    <div class="w-full max-w-md md:max-w-lg bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl space-y-6 my-auto">
+  <!-- ==================== 1. INITIAL STORE SETUP / REGISTRATION SCREEN ==================== -->
+  <div id="setupScreen" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-2xl overflow-y-auto hidden">
+    <div class="w-full max-w-md bg-slate-900/70 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 my-auto">
       <div class="text-center space-y-2">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-teal-400 mx-auto flex items-center justify-center shadow-xl shadow-brand-600/30 !text-white text-2xl font-black">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-teal-400 !text-white mx-auto flex items-center justify-center text-2xl shadow-lg shadow-brand-500/30">
           <i class="fa-solid fa-store"></i>
         </div>
-        <h2 class="text-xl font-black !text-white">Pendaftaran Toko Baru</h2>
-        <p class="text-xs !text-slate-400">Silakan isi data usaha Anda untuk memulai aplikasi</p>
+        <h2 class="text-lg font-black !text-white tracking-wide">Pendaftaran Toko Baru</h2>
+        <p class="text-xs !text-slate-400">Lengkapi identitas usaha dan buat 4 digit PIN keamanan kasir</p>
       </div>
 
-      <form id="setupForm" onsubmit="handleInitialSetup(event)" class="space-y-4">
+      <form onsubmit="handleInitialSetup(event)" class="space-y-3.5">
         <div>
-          <label class="block text-xs font-bold !text-slate-300 mb-1">Nama Toko / Usaha <span class="text-rose-500">*</span></label>
-          <input type="text" id="setupStoreName" required class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-xs !text-white font-bold focus:outline-none focus:border-brand-500">
+          <label class="block text-xs font-bold !text-slate-300 mb-1">Nama Toko / Usaha <span class="text-rose-400">*</span></label>
+          <input type="text" id="setupStoreName" required class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs !text-white font-bold focus:outline-none focus:border-brand-400">
         </div>
+
         <div>
-          <label class="block text-xs font-bold !text-slate-300 mb-1">Jenis / Sub-Judul Usaha</label>
-          <input type="text" id="setupStoreSubtitle" class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-xs !text-white font-bold focus:outline-none focus:border-brand-500">
+          <label class="block text-xs font-bold !text-slate-300 mb-1">Jenis Usaha / Sub-Judul</label>
+          <input type="text" id="setupStoreSubtitle" class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs !text-white font-bold focus:outline-none focus:border-brand-400">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold !text-slate-300 mb-1">Nama Pemilik <span class="text-rose-500">*</span></label>
-            <input type="text" id="setupOwnerName" required class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-xs !text-white font-bold focus:outline-none focus:border-brand-500">
+            <label class="block text-xs font-bold !text-slate-300 mb-1">Nama Pemilik <span class="text-rose-400">*</span></label>
+            <input type="text" id="setupOwnerName" required class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs !text-white font-bold focus:outline-none focus:border-brand-400">
           </div>
           <div>
-            <label class="block text-xs font-bold !text-slate-300 mb-1">No. WhatsApp <span class="text-rose-500">*</span></label>
-            <input type="text" id="setupPhone" required class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-xs !text-white font-bold focus:outline-none focus:border-brand-500">
+            <label class="block text-xs font-bold !text-slate-300 mb-1">No. WhatsApp <span class="text-rose-400">*</span></label>
+            <input type="tel" id="setupPhone" required class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs !text-white font-bold focus:outline-none focus:border-brand-400">
           </div>
         </div>
+
         <div>
           <label class="block text-xs font-bold !text-slate-300 mb-1">Alamat Lengkap Toko</label>
-          <textarea id="setupAddress" rows="2" class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-xs !text-white font-bold focus:outline-none focus:border-brand-500 resize-none"></textarea>
+          <textarea id="setupAddress" rows="2" class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs !text-white font-bold resize-none focus:outline-none focus:border-brand-400"></textarea>
         </div>
-        <div>
-          <label class="block text-xs font-bold !text-slate-300 mb-1">PIN Keamanan Kasir (4 Angka) <span class="text-rose-500">*</span></label>
-          <input type="password" id="setupPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-center text-lg font-mono tracking-widest !text-white font-bold focus:outline-none focus:border-brand-500">
-        </div>
-        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-teal-500 !text-white font-bold text-sm shadow-lg shadow-brand-600/30 hover:opacity-95 transition">
-          Simpan & Mulai Aplikasi
-        </button>
-      </form>
 
-      <div class="pt-2 border-t border-white/10 text-center">
-        <button type="button" onclick="syncExistingStoreFromCloud()" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition flex items-center justify-center gap-1.5 mx-auto">
-          <i class="fa-solid fa-cloud-arrow-down"></i> Sudah terdaftar di Google Sheets? Tarik Data Toko
-        </button>
-      </div>
+        <div>
+          <label class="block text-xs font-bold !text-slate-300 mb-1">Buat PIN Akses Kasir (4 Angka) <span class="text-rose-400">*</span></label>
+          <input type="password" id="setupPin" inputmode="numeric" pattern="\d{4}" maxlength="4" required class="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm !text-white font-black tracking-[0.5em] text-center focus:outline-none focus:border-brand-400">
+        </div>
+
+        <div class="pt-2 space-y-2.5">
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-600 to-teal-500 !text-white font-bold text-xs shadow-lg shadow-brand-600/30 hover:opacity-95 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check-circle"></i> Simpan & Mulai Kasir
+          </button>
+
+          <button type="button" onclick="syncExistingStoreFromCloud()" class="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 !text-slate-300 font-bold text-[11px] transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-down text-brand-400"></i> Sudah Punya Toko? Tarik Data Cloud
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -173,39 +231,39 @@
   </div>
 
   <!-- ==================== 3. TOP HEADER BAR ==================== -->
-  <header class="sticky top-0 z-30 glass-card border-b border-white/10 px-4 md:px-6 py-3 transition-colors">
-    <div class="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl overflow-hidden border border-brand-400/40 shadow-md shrink-0">
+  <header class="sticky top-0 z-30 glass-card border-b border-slate-200/80 dark:border-white/10 px-4 lg:px-8 py-3 transition-colors">
+    <div class="max-w-lg lg:max-w-6xl mx-auto flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 lg:w-10 lg:h-10 rounded-xl overflow-hidden border border-brand-500/40 shadow-sm shrink-0">
           <img id="topbarLogo" src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&auto=format&fit=crop&q=80" class="w-full h-full object-cover">
         </div>
-        <div>
-          <h1 id="topbarStoreName" class="text-xs md:text-sm font-black text-white tracking-wide truncate max-w-[150px] md:max-w-xs">LAPORAN PENJUALAN</h1>
-          <span class="text-[10px] text-brand-500 dark:text-brand-400 font-bold flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online • Kasir & Manajemen Toko
+        <div class="min-w-0">
+          <h1 id="topbarStoreName" class="text-xs lg:text-sm font-black text-white tracking-wide truncate">LAPORAN PENJUALAN</h1>
+          <span class="text-[10px] text-brand-600 dark:text-brand-400 font-bold flex items-center gap-1 truncate">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span> Online â€¢ Kasir Toko
           </span>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 md:gap-2.5">
-        <button type="button" onclick="toggleTheme()" class="h-9 px-3 rounded-xl glass-card flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs font-bold transition" title="Ganti Tema">
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" onclick="toggleTheme()" class="w-9 h-9 lg:w-auto lg:px-3.5 rounded-xl glass-card flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white text-xs font-bold transition" title="Ganti Tema">
           <i id="themeIcon" class="fa-solid fa-sun text-xs"></i>
-          <span class="hidden md:inline">Tema</span>
+          <span class="hidden lg:inline">Tema</span>
         </button>
-        <button type="button" onclick="openCartModal()" class="relative h-9 px-3 rounded-xl glass-card flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs font-bold transition lg:hidden" title="Keranjang Belanja">
+        <button type="button" onclick="openCartModal()" class="relative w-9 h-9 rounded-xl glass-card flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white transition lg:hidden" title="Keranjang Belanja">
           <i class="fa-solid fa-cart-shopping text-xs"></i>
           <span id="cartBadge" class="absolute -top-1 -right-1 bg-rose-500 !text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg hidden">0</span>
         </button>
-        <button type="button" onclick="syncDataWithCloud()" class="h-9 px-3 rounded-xl glass-card flex items-center justify-center gap-1.5 text-brand-500 dark:text-brand-400 hover:text-brand-300 text-xs font-bold transition" title="Sinkron Data Cloud">
+        <button type="button" onclick="syncDataWithCloud()" class="w-9 h-9 lg:w-auto lg:px-3.5 rounded-xl glass-card flex items-center justify-center gap-1.5 text-brand-600 dark:text-brand-400 hover:opacity-80 text-xs font-bold transition" title="Sinkron Data Cloud">
           <i id="syncIcon" class="fa-solid fa-rotate text-xs"></i>
-          <span class="hidden md:inline">Sinkron Data</span>
+          <span class="hidden lg:inline">Sinkron</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- ==================== 4. MAIN CONTENT CONTAINER ==================== -->
-  <main class="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 pb-32">
+  <main class="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 py-4 lg:py-6 pb-32">
 
     <!-- A. TAB KASIR -->
     <section id="tabKasir" class="tab-content">
@@ -214,7 +272,7 @@
         <!-- KOLOM KIRI (KATALOG PRODUK & BANNER) -->
         <div class="lg:col-span-8 space-y-4">
           <!-- Banner Gambar Murni (Hanya Muncul di Menu Kasir) -->
-          <div class="w-full h-40 sm:h-48 lg:h-52 rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative group">
+          <div class="w-full h-36 sm:h-44 lg:h-48 rounded-3xl overflow-hidden shadow-lg border border-slate-200/80 dark:border-white/10 relative">
             <img id="dashboardBannerImg" src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1200&auto=format&fit=crop&q=80" class="w-full h-full object-cover">
           </div>
 
@@ -222,10 +280,10 @@
           <div class="space-y-2.5">
             <div class="relative">
               <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
-              <input type="text" id="posSearchInput" oninput="filterPosProducts()" placeholder="Cari nama barang atau scan QR/barcode..." class="w-full pl-10 pr-24 py-3 rounded-2xl glass-card text-xs text-white placeholder-slate-400 font-bold focus:outline-none focus:border-brand-500">
-              <button type="button" onclick="openScannerModal()" class="absolute right-2.5 top-1/2 -translate-y-1/2 bg-brand-600/20 text-brand-500 dark:text-brand-400 hover:bg-brand-600 hover:!text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition" title="Scan QR / Barcode">
+              <input type="text" id="posSearchInput" oninput="filterPosProducts()" placeholder="Cari nama barang atau scan QR..." class="w-full pl-10 pr-24 py-3 rounded-2xl glass-card text-xs text-white placeholder-slate-400 font-bold focus:outline-none focus:border-brand-500">
+              <button type="button" onclick="openScannerModal()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-600/15 dark:bg-brand-600/20 text-brand-700 dark:text-brand-400 hover:bg-brand-600 hover:!text-white px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition" title="Scan QR / Barcode">
                 <i class="fa-solid fa-qrcode text-sm"></i>
-                <span class="hidden sm:inline">Scan QR</span>
+                <span>Scan</span>
               </button>
             </div>
 
@@ -234,34 +292,34 @@
             </div>
           </div>
 
-          <!-- Products Grid (Responsif 2 Kolom di HP, 3-4 Kolom di Laptop/PC) -->
-          <div id="posProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-3.5"></div>
+          <!-- Products Grid (2 Kolom rapi di HP, 3 Kolom di Laptop/PC) -->
+          <div id="posProductsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-3.5"></div>
         </div>
 
         <!-- KOLOM KANAN (KERANJANG BELANJA LANGSUNG KHUSUS LAPTOP / PC) -->
-        <aside class="hidden lg:flex lg:col-span-4 lg:sticky lg:top-20 glass-card rounded-3xl p-5 flex-col justify-between space-y-4 shadow-xl min-h-[480px]">
+        <aside class="hidden lg:flex lg:col-span-4 lg:sticky lg:top-20 glass-card rounded-3xl p-5 flex-col justify-between space-y-4 shadow-xl min-h-[470px]">
           <div class="space-y-3">
-            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <h3 class="text-sm font-black text-white flex items-center gap-2">
-                <i class="fa-solid fa-cart-shopping text-brand-400"></i> Keranjang Kasir
+                <i class="fa-solid fa-cart-shopping text-brand-600 dark:text-brand-400"></i> Keranjang Kasir
               </h3>
-              <button type="button" onclick="clearAllCart()" class="text-[11px] font-bold text-rose-400 hover:text-rose-300 transition">Kosongkan</button>
+              <button type="button" onclick="clearAllCart()" class="text-[11px] font-bold text-rose-500 dark:text-rose-400 hover:underline transition">Kosongkan</button>
             </div>
 
-            <div id="desktopCartItemsList" class="space-y-2.5 max-h-[300px] overflow-y-auto no-scrollbar pr-0.5">
+            <div id="desktopCartItemsList" class="space-y-2.5 max-h-[290px] overflow-y-auto no-scrollbar pr-0.5">
               <p class="text-center text-xs text-slate-400 py-12">Klik produk di sebelah kiri untuk menambahkan ke keranjang.</p>
             </div>
           </div>
 
-          <div class="pt-3 border-t border-white/10 space-y-3">
-            <div class="bg-slate-800/40 dark:bg-slate-800/60 p-3.5 rounded-2xl space-y-1.5 border border-white/5">
-              <div class="flex justify-between text-xs font-bold text-slate-400">
+          <div class="pt-3 border-t border-slate-200 dark:border-white/10 space-y-3">
+            <div class="surface-subtle p-3.5 rounded-2xl space-y-1.5 border">
+              <div class="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
                 <span>Total Item</span>
                 <span id="desktopCartCount" class="text-white">0 Item</span>
               </div>
               <div class="flex justify-between items-center text-sm font-black text-white">
                 <span>Total Tagihan</span>
-                <span id="desktopCartTotal" class="text-brand-500 dark:text-brand-400 text-base">Rp 0</span>
+                <span id="desktopCartTotal" class="text-brand-600 dark:text-brand-400 text-base">Rp 0</span>
               </div>
             </div>
 
@@ -274,9 +332,9 @@
 
       </div>
 
-      <!-- Floating Cart Summary Bar (Khusus Mobile/Tablet, tersembunyi di Laptop/PC karena sudah ada panel kanan) -->
-      <div id="floatingCartBar" class="fixed bottom-20 left-4 right-4 z-20 max-w-md mx-auto lg:hidden hidden">
-        <div onclick="openCartModal()" class="bg-gradient-to-r from-brand-600 to-teal-500 !text-white rounded-2xl p-3.5 shadow-2xl shadow-brand-600/40 flex items-center justify-between cursor-pointer active:scale-[0.98] transition border border-white/20">
+      <!-- Floating Cart Summary Bar (Khusus HP, tersembunyi di Laptop/PC) -->
+      <div id="floatingCartBar" class="fixed bottom-[76px] left-4 right-4 z-20 max-w-lg mx-auto lg:hidden hidden">
+        <div onclick="openCartModal()" class="bg-gradient-to-r from-brand-600 to-teal-500 !text-white rounded-2xl p-3.5 shadow-2xl shadow-brand-600/40 flex items-center justify-between cursor-pointer active:scale-[0.98] transition border border-white/25">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-black text-xs" id="floatingCartCount">0</div>
             <div>
@@ -284,7 +342,7 @@
               <span class="text-sm font-black" id="floatingCartTotal">Rp 0</span>
             </div>
           </div>
-          <div class="flex items-center gap-1.5 bg-slate-950/25 px-3 py-2 rounded-xl text-xs font-black">
+          <div class="flex items-center gap-1.5 bg-slate-950/25 px-3.5 py-2 rounded-xl text-xs font-black">
             <span>Bayar</span>
             <i class="fa-solid fa-arrow-right text-[10px]"></i>
           </div>
@@ -294,112 +352,129 @@
 
     <!-- B. TAB STOK BARANG -->
     <section id="tabStok" class="space-y-4 tab-content hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-sm md:text-base font-black text-white">Kelola Stok Barang</h2>
-          <p class="text-[11px] text-slate-400 font-bold" id="stokSummarySubtitle">0 Produk terdaftar</p>
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm lg:text-base font-black text-white">Kelola Stok Barang</h2>
+            <p class="text-[11px] text-slate-400 font-bold" id="stokSummarySubtitle">0 Produk terdaftar</p>
+          </div>
+          <button type="button" onclick="openAddProductModal()" class="lg:hidden px-3.5 py-2 rounded-xl bg-brand-600 !text-white text-xs font-bold shadow-lg shadow-brand-600/30 flex items-center gap-1.5 shrink-0">
+            <i class="fa-solid fa-plus text-[10px]"></i> Tambah
+          </button>
         </div>
-        <div class="flex items-center gap-2.5 flex-1 sm:max-w-md justify-end">
+
+        <div class="flex items-center gap-2.5 lg:w-[420px]">
           <div class="relative flex-1">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
             <input type="text" id="manageSearchInput" oninput="filterManageProducts()" placeholder="Cari nama barang atau kode QR..." class="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-card text-xs text-white placeholder-slate-400 font-bold focus:outline-none focus:border-brand-500">
           </div>
-          <button type="button" onclick="openAddProductModal()" class="px-4 py-2.5 rounded-2xl bg-brand-600 !text-white text-xs font-bold shadow-lg shadow-brand-600/30 flex items-center gap-1.5 whitespace-nowrap transition hover:opacity-95">
+          <button type="button" onclick="openAddProductModal()" class="hidden lg:flex px-4 py-2.5 rounded-2xl bg-brand-600 !text-white text-xs font-bold shadow-lg shadow-brand-600/30 items-center gap-1.5 whitespace-nowrap transition hover:opacity-95 shrink-0">
             <i class="fa-solid fa-plus text-[10px]"></i> Tambah Barang
           </button>
         </div>
       </div>
 
-      <div id="manageProductsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      <div id="manageProductsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
     </section>
 
     <!-- C. TAB LAPORAN & TRANSAKSI -->
-    <section id="tabLaporan" class="space-y-4 md:space-y-5 tab-content hidden">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-sm md:text-base font-black text-white">Laporan & Riwayat Transaksi</h2>
-          <p class="text-[11px] text-slate-400 font-bold">Ringkasan omset, profit & detail nota penjualan</p>
+    <section id="tabLaporan" class="space-y-4 tab-content hidden">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm lg:text-base font-black text-white">Laporan & Riwayat Transaksi</h2>
+            <p class="text-[11px] text-slate-400 font-bold">Ringkasan omset, profit & nota penjualan</p>
+          </div>
+          <div class="flex items-center gap-1.5 lg:hidden shrink-0">
+            <button type="button" onclick="exportReportPdf()" class="px-3 py-2 rounded-xl bg-rose-600 !text-white text-[11px] font-bold flex items-center gap-1 shadow-md shadow-rose-600/25">
+              <i class="fa-solid fa-file-pdf text-xs"></i> PDF
+            </button>
+            <button type="button" onclick="exportReportData()" class="px-3 py-2 rounded-xl glass-card text-slate-600 dark:text-slate-300 text-[11px] font-bold flex items-center gap-1">
+              <i class="fa-solid fa-file-csv text-xs"></i> CSV
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center gap-2">
           <!-- Filter Periode Laporan -->
-          <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl glass-card text-[11px] font-bold text-center flex-1 md:w-80">
+          <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl glass-card text-[11px] font-bold text-center flex-1 lg:w-80">
             <button type="button" onclick="setReportFilter('hari')" id="btnFilterHari" class="py-2 rounded-xl bg-brand-600 !text-white shadow-md">Hari Ini</button>
-            <button type="button" onclick="setReportFilter('bulan')" id="btnFilterBulan" class="py-2 rounded-xl text-slate-400 hover:text-white">Bulan Ini</button>
-            <button type="button" onclick="setReportFilter('semua')" id="btnFilterSemua" class="py-2 rounded-xl text-slate-400 hover:text-white">Semua</button>
-            <button type="button" onclick="setReportFilter('custom')" id="btnFilterCustom" class="py-2 rounded-xl text-slate-400 hover:text-white">Custom</button>
+            <button type="button" onclick="setReportFilter('bulan')" id="btnFilterBulan" class="py-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white">Bulan Ini</button>
+            <button type="button" onclick="setReportFilter('semua')" id="btnFilterSemua" class="py-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white">Semua</button>
+            <button type="button" onclick="setReportFilter('custom')" id="btnFilterCustom" class="py-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white">Custom</button>
           </div>
-          <button type="button" onclick="exportReportData()" class="px-3.5 py-2.5 rounded-2xl glass-card text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 shrink-0">
-            <i class="fa-solid fa-download text-xs"></i> <span>Ekspor CSV</span>
+          <button type="button" onclick="exportReportPdf()" class="hidden lg:flex px-3.5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 !text-white text-xs font-bold items-center gap-1.5 shadow-md shadow-rose-600/25 shrink-0 transition">
+            <i class="fa-solid fa-file-pdf text-xs"></i> <span>Download PDF</span>
+          </button>
+          <button type="button" onclick="exportReportData()" class="hidden lg:flex px-3.5 py-2.5 rounded-2xl glass-card text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white text-xs font-bold items-center gap-1.5 shrink-0 transition">
+            <i class="fa-solid fa-file-csv text-xs"></i> <span>Ekspor CSV</span>
           </button>
         </div>
       </div>
 
       <!-- Custom Date Picker Row -->
       <div id="customDateRow" class="glass-card p-3.5 rounded-2xl space-y-2 hidden">
-        <div class="grid grid-cols-2 md:max-w-md gap-3">
+        <div class="grid grid-cols-2 lg:max-w-md gap-3">
           <div>
-            <label class="block text-[10px] text-slate-400 mb-1 font-bold">Dari Tanggal:</label>
-            <input type="date" id="reportStartDate" onchange="renderReportsData()" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs !text-white font-bold">
+            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-1 font-bold">Dari Tanggal:</label>
+            <input type="date" id="reportStartDate" onchange="renderReportsData()" class="w-full px-3 py-2 rounded-xl surface-subtle border text-xs text-white font-bold">
           </div>
           <div>
-            <label class="block text-[10px] text-slate-400 mb-1 font-bold">Sampai Tanggal:</label>
-            <input type="date" id="reportEndDate" onchange="renderReportsData()" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs !text-white font-bold">
+            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-1 font-bold">Sampai Tanggal:</label>
+            <input type="date" id="reportEndDate" onchange="renderReportsData()" class="w-full px-3 py-2 rounded-xl surface-subtle border text-xs text-white font-bold">
           </div>
         </div>
       </div>
 
       <!-- 4 Kartu Metrik Utama (2 Kolom di HP, 4 Kolom Sejajar di Laptop/PC) -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <div class="glass-card p-4 rounded-3xl space-y-1">
-          <span class="text-[11px] text-slate-400 font-bold block">Total Omset Penjualan</span>
-          <h3 id="repTotalOmset" class="text-base md:text-lg font-black text-brand-500 dark:text-brand-400">Rp 0</h3>
+          <span class="text-[11px] text-slate-400 font-bold block">Total Omset</span>
+          <h3 id="repTotalOmset" class="text-base lg:text-lg font-black text-brand-600 dark:text-brand-400">Rp 0</h3>
           <span id="repTotalTxCount" class="text-[10px] text-slate-500 font-bold block">0 Transaksi</span>
         </div>
         <div class="glass-card p-4 rounded-3xl space-y-1">
-          <span class="text-[11px] text-slate-400 font-bold block">Keuntungan Bersih (Profit)</span>
-          <h3 id="repTotalProfit" class="text-base md:text-lg font-black text-emerald-500 dark:text-emerald-400">Rp 0</h3>
-          <span id="repMarginPercent" class="text-[10px] text-emerald-500 font-bold block">Margin: 0%</span>
+          <span class="text-[11px] text-slate-400 font-bold block">Keuntungan Bersih</span>
+          <h3 id="repTotalProfit" class="text-base lg:text-lg font-black text-emerald-600 dark:text-emerald-400">Rp 0</h3>
+          <span id="repMarginPercent" class="text-[10px] text-emerald-600 dark:text-emerald-500 font-bold block">Margin: 0%</span>
         </div>
-        <div class="glass-card p-4 rounded-3xl flex items-center justify-between">
-          <div class="space-y-1">
+        <div class="glass-card p-4 rounded-3xl flex items-center justify-between gap-2">
+          <div class="space-y-1 min-w-0">
             <span class="text-[11px] text-slate-400 font-bold block">Total Modal (HPP)</span>
-            <h4 id="repTotalCost" class="text-sm md:text-base font-black text-white">Rp 0</h4>
-            <span class="text-[10px] text-slate-500 font-bold block">Harga pokok</span>
+            <h4 id="repTotalCost" class="text-sm lg:text-base font-black text-white truncate">Rp 0</h4>
           </div>
-          <div class="w-9 h-9 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm shrink-0">
+          <div class="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 dark:text-rose-400 flex items-center justify-center text-xs shrink-0">
             <i class="fa-solid fa-wallet"></i>
           </div>
         </div>
-        <div class="glass-card p-4 rounded-3xl flex items-center justify-between">
-          <div class="space-y-1">
+        <div class="glass-card p-4 rounded-3xl flex items-center justify-between gap-2">
+          <div class="space-y-1 min-w-0">
             <span class="text-[11px] text-slate-400 font-bold block">Unit Terjual</span>
-            <h4 id="repTotalUnits" class="text-sm md:text-base font-black text-white">0 Unit</h4>
-            <span class="text-[10px] text-slate-500 font-bold block">Total kuantitas</span>
+            <h4 id="repTotalUnits" class="text-sm lg:text-base font-black text-white truncate">0 Unit</h4>
           </div>
-          <div class="w-9 h-9 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm shrink-0">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xs shrink-0">
             <i class="fa-solid fa-boxes-stacked"></i>
           </div>
         </div>
       </div>
 
-      <!-- Konten Bawah Laporan: 2 Kolom di Laptop/PC -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 items-start">
+      <!-- Konten Bawah Laporan: 1 Kolom di HP, 2 Kolom di Laptop/PC -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
         <!-- Rincian Penjualan Barang Terlaris -->
-        <div class="lg:col-span-5 glass-card rounded-3xl p-4 md:p-5 space-y-3">
-          <h3 class="text-xs md:text-sm font-black text-white flex items-center gap-2 border-b border-white/10 pb-2.5">
-            <i class="fa-solid fa-chart-pie text-brand-500 dark:text-brand-400"></i> Rincian Penjualan Barang
+        <div class="lg:col-span-5 glass-card rounded-3xl p-4 lg:p-5 space-y-3">
+          <h3 class="text-xs font-black text-white flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2.5">
+            <i class="fa-solid fa-chart-pie text-brand-600 dark:text-brand-400"></i> Rincian Penjualan Barang
           </h3>
-          <div id="repTopProductsList" class="space-y-2 max-h-60 lg:max-h-[420px] overflow-y-auto no-scrollbar"></div>
+          <div id="repTopProductsList" class="space-y-2 max-h-56 lg:max-h-[420px] overflow-y-auto no-scrollbar"></div>
         </div>
 
         <!-- Riwayat Transaksi Lengkap -->
         <div class="lg:col-span-7 space-y-3">
           <div class="flex items-center justify-between px-1">
-            <h3 class="text-xs md:text-sm font-black text-white flex items-center gap-1.5">
-              <i class="fa-solid fa-receipt text-brand-500 dark:text-brand-400"></i> Riwayat Transaksi
+            <h3 class="text-xs font-black text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-receipt text-brand-600 dark:text-brand-400"></i> Riwayat Transaksi
             </h3>
-            <span class="text-[10px] text-slate-400 font-bold">Klik nota untuk detail & struk</span>
+            <span class="text-[10px] text-slate-400 font-bold">Klik nota untuk detail</span>
           </div>
           <div id="repTransactionsList" class="space-y-3"></div>
         </div>
@@ -408,39 +483,39 @@
 
     <!-- D. TAB PROFIL TOKO (KOMPLIT & MODERN) -->
     <section id="tabProfil" class="tab-content hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
         
         <!-- KOLOM KIRI: KARTU COVER, AVATAR & STATISTIK -->
-        <div class="lg:col-span-5 glass-card rounded-3xl overflow-hidden shadow-xl">
+        <div class="lg:col-span-5 glass-card rounded-3xl overflow-hidden shadow-lg">
           <div class="h-28 bg-gradient-to-r from-brand-700 via-teal-600 to-emerald-600 relative">
-            <div class="absolute inset-0 bg-black/20"></div>
+            <div class="absolute inset-0 bg-black/15"></div>
             <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md !text-white text-[10px] font-bold flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Toko Aktif
             </span>
           </div>
 
           <div class="px-5 pb-6 text-center relative">
-            <div class="relative w-24 h-24 mx-auto -mt-12 rounded-full p-1 bg-slate-900 shadow-2xl border-2 border-brand-400">
+            <div class="relative w-24 h-24 mx-auto -mt-12 rounded-full p-1 bg-white dark:bg-slate-900 shadow-xl border-2 border-brand-500">
               <img id="profileAvatarImg" src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400&auto=format&fit=crop&q=80" class="w-full h-full object-cover rounded-full">
             </div>
 
             <div class="mt-3 space-y-1">
               <h2 id="profileStoreName" class="text-lg font-black text-white">LAPORAN PENJUALAN</h2>
-              <p id="profileStoreSubtitle" class="text-xs text-brand-500 dark:text-brand-400 font-bold">Kasir & Manajemen Toko</p>
+              <p id="profileStoreSubtitle" class="text-xs text-brand-600 dark:text-brand-400 font-bold">Kasir & Manajemen Toko</p>
             </div>
 
             <!-- Mini Business Stats -->
-            <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-300/20 dark:border-white/10">
-              <div class="p-2.5 rounded-2xl bg-slate-800/30">
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+              <div class="p-2.5 rounded-2xl surface-subtle border">
                 <span class="text-sm font-black text-white block" id="profStatProducts">0</span>
                 <span class="text-[10px] text-slate-400 font-bold">Produk</span>
               </div>
-              <div class="p-2.5 rounded-2xl bg-slate-800/30">
-                <span class="text-sm font-black text-emerald-500 dark:text-emerald-400 block" id="profStatTx">0</span>
+              <div class="p-2.5 rounded-2xl surface-subtle border">
+                <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block" id="profStatTx">0</span>
                 <span class="text-[10px] text-slate-400 font-bold">Transaksi</span>
               </div>
-              <div class="p-2.5 rounded-2xl bg-slate-800/30">
-                <span class="text-sm font-black text-brand-500 dark:text-brand-400 block" id="profStatStock">0</span>
+              <div class="p-2.5 rounded-2xl surface-subtle border">
+                <span class="text-sm font-black text-brand-600 dark:text-brand-400 block" id="profStatStock">0</span>
                 <span class="text-[10px] text-slate-400 font-bold">Total Stok</span>
               </div>
             </div>
@@ -451,34 +526,34 @@
         <div class="lg:col-span-7 space-y-4">
           <!-- Detail Informasi Lengkap Usaha -->
           <div class="glass-card rounded-3xl p-5 space-y-3.5">
-            <h3 class="text-xs md:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/10 pb-2.5">
-              <i class="fa-solid fa-circle-info text-brand-500 dark:text-brand-400"></i> Informasi Lengkap Usaha
+            <h3 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2.5">
+              <i class="fa-solid fa-circle-info text-brand-600 dark:text-brand-400"></i> Informasi Lengkap Usaha
             </h3>
 
             <div class="space-y-3 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 font-bold flex items-center gap-2"><i class="fa-solid fa-user-tie w-4 text-center text-brand-400"></i> Pemilik Usaha</span>
-                <span id="profileOwner" class="font-black text-white">-</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-slate-400 font-bold flex items-center gap-2 shrink-0"><i class="fa-solid fa-user-tie w-4 text-center text-brand-500"></i> Pemilik Usaha</span>
+                <span id="profileOwner" class="font-black text-white text-right truncate">-</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 font-bold flex items-center gap-2"><i class="fa-brands fa-whatsapp w-4 text-center text-emerald-400"></i> No. WhatsApp</span>
-                <span id="profilePhone" class="font-black text-white">-</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-slate-400 font-bold flex items-center gap-2 shrink-0"><i class="fa-brands fa-whatsapp w-4 text-center text-emerald-500"></i> No. WhatsApp</span>
+                <span id="profilePhone" class="font-black text-white text-right truncate">-</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 font-bold flex items-center gap-2"><i class="fa-solid fa-shield-halved w-4 text-center text-amber-400"></i> PIN Keamanan</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-slate-400 font-bold flex items-center gap-2 shrink-0"><i class="fa-solid fa-shield-halved w-4 text-center text-amber-500"></i> PIN Keamanan</span>
                 <div class="flex items-center gap-2">
-                  <span id="profilePinDisplay" class="font-mono font-black text-white">••••</span>
-                  <button type="button" onclick="toggleProfilePinVisibility()" class="text-slate-400 hover:text-brand-400 text-xs">
+                  <span id="profilePinDisplay" class="font-mono font-black text-white">â€¢â€¢â€¢â€¢</span>
+                  <button type="button" onclick="toggleProfilePinVisibility()" class="text-slate-400 hover:text-brand-500 text-xs">
                     <i id="profilePinEyeIcon" class="fa-solid fa-eye"></i>
                   </button>
                 </div>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 font-bold flex items-center gap-2"><i class="fa-solid fa-cloud w-4 text-center text-sky-400"></i> Database Cloud</span>
-                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Google Sheets Terhubung</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-slate-400 font-bold flex items-center gap-2 shrink-0"><i class="fa-solid fa-cloud w-4 text-center text-sky-500"></i> Database Cloud</span>
+                <span class="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Google Sheets</span>
               </div>
-              <div class="pt-2 border-t border-white/5">
-                <span class="text-slate-400 font-bold flex items-center gap-2 mb-1"><i class="fa-solid fa-location-dot w-4 text-center text-rose-400"></i> Alamat Lengkap Toko</span>
+              <div class="pt-2 border-t border-slate-200/70 dark:border-white/5">
+                <span class="text-slate-400 font-bold flex items-center gap-2 mb-1"><i class="fa-solid fa-location-dot w-4 text-center text-rose-500"></i> Alamat Lengkap Toko</span>
                 <p id="profileAddress" class="font-bold text-white pl-6 leading-relaxed">-</p>
               </div>
             </div>
@@ -491,28 +566,28 @@
             </button>
 
             <div class="grid grid-cols-2 gap-2.5">
-              <button type="button" onclick="syncDataWithCloud()" class="py-3 rounded-2xl glass-card text-brand-500 dark:text-brand-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
+              <button type="button" onclick="syncDataWithCloud()" class="py-3 rounded-2xl glass-card text-brand-600 dark:text-brand-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-rotate"></i> Sinkron Cloud
               </button>
-              <button type="button" onclick="lockAppToPin()" class="py-3 rounded-2xl glass-card text-rose-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
+              <button type="button" onclick="lockAppToPin()" class="py-3 rounded-2xl glass-card text-rose-500 dark:text-rose-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-lock"></i> Kunci Kasir
               </button>
             </div>
 
             <!-- Pengaturan URL API Opsional (Jika index.html di-hosting di GitHub Pages / Netlify / Vercel untuk Kamera Live) -->
-            <div class="glass-card rounded-2xl p-4 space-y-2 border border-white/5">
-              <div class="flex items-center justify-between">
+            <div class="glass-card rounded-2xl p-4 space-y-2">
+              <div class="flex items-center justify-between gap-2">
                 <span class="text-[11px] font-black text-white flex items-center gap-1.5">
-                  <i class="fa-solid fa-link text-brand-400"></i> URL Web App (Mode Hosting Eksternal)
+                  <i class="fa-solid fa-link text-brand-500"></i> URL Web App (Hosting Eksternal)
                 </span>
-                <span id="externalApiStatusBadge" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Bawaan GAS</span>
+                <span id="externalApiStatusBadge" class="text-[9px] font-bold px-2 py-0.5 rounded-full surface-subtle text-slate-500 dark:text-slate-400 shrink-0">Bawaan GAS</span>
               </div>
               <p class="text-[10px] text-slate-400 leading-relaxed">
-                Isi URL <span class="font-mono text-slate-300">.../exec</span> hanya jika Anda membuka file HTML ini dari GitHub Pages / Netlify / Vercel agar kamera live terbuka tanpa batas iframe Google.
+                Isi URL <span class="font-mono text-slate-600 dark:text-slate-300">.../exec</span> hanya jika membuka file ini dari GitHub Pages / Netlify / Vercel agar kamera live terbuka tanpa batas iframe Google.
               </p>
               <div class="flex gap-2">
-                <input type="url" id="externalWebAppUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[11px] !text-white font-mono">
-                <button type="button" onclick="saveExternalWebAppUrl()" class="px-3.5 py-2 rounded-xl bg-brand-600 !text-white text-[11px] font-bold">Simpan</button>
+                <input type="url" id="externalWebAppUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 min-w-0 px-3 py-2 rounded-xl surface-subtle border text-[11px] text-white font-mono">
+                <button type="button" onclick="saveExternalWebAppUrl()" class="px-3.5 py-2 rounded-xl bg-brand-600 !text-white text-[11px] font-bold shrink-0">Simpan</button>
               </div>
             </div>
           </div>
@@ -523,34 +598,35 @@
 
   </main>
 
-  <!-- ==================== 5. BOTTOM NAVIGATION BAR (FIXED NAV / FLOATING DOCK ON PC) ==================== -->
-  <nav class="fixed bottom-0 md:bottom-4 left-0 md:left-1/2 right-0 md:right-auto md:-translate-x-1/2 z-30 md:w-full md:max-w-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl border-t md:border border-slate-200 dark:border-white/15 md:rounded-3xl shadow-2xl transition-colors">
-    <div class="max-w-md md:max-w-xl mx-auto flex items-center justify-around py-2 px-2 relative">
-      <button type="button" onclick="switchTab('kasir')" id="navKasir" class="nav-btn flex flex-col items-center gap-1 text-brand-500 dark:text-brand-400 font-bold text-[11px] transition">
-        <i class="fa-solid fa-cash-register text-lg"></i>
+  <!-- ==================== 5. BOTTOM NAVIGATION BAR (5-SLOT SIMETRIS DI HP & PC) ==================== -->
+  <nav class="fixed bottom-0 lg:bottom-4 left-0 lg:left-1/2 right-0 lg:right-auto lg:-translate-x-1/2 z-30 lg:w-full lg:max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl border-t lg:border border-slate-200 dark:border-white/15 lg:rounded-3xl shadow-2xl transition-colors">
+    <div class="max-w-lg mx-auto grid grid-cols-5 items-center py-2 px-1 relative">
+
+      <button type="button" onclick="switchTab('kasir')" id="navKasir" class="nav-btn flex flex-col items-center justify-center gap-1 text-brand-600 dark:text-brand-400 font-bold text-[10px] sm:text-[11px] transition">
+        <i class="fa-solid fa-cash-register text-base sm:text-lg"></i>
         <span>Kasir</span>
       </button>
 
-      <button type="button" onclick="switchTab('stok')" id="navStok" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white font-bold text-[11px] transition">
-        <i class="fa-solid fa-boxes-stacked text-lg"></i>
+      <button type="button" onclick="switchTab('stok')" id="navStok" class="nav-btn flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-600 dark:hover:text-white font-bold text-[10px] sm:text-[11px] transition">
+        <i class="fa-solid fa-boxes-stacked text-base sm:text-lg"></i>
         <span>Stok</span>
       </button>
 
       <!-- TOMBOL SCANNER / QRIS / BARCODE DI TENGAH NAVBAR -->
-      <div class="relative -top-5">
+      <div class="flex justify-center relative -top-5">
         <button type="button" onclick="openScannerModal()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-600 to-teal-400 !text-white shadow-xl shadow-brand-600/40 flex items-center justify-center text-xl transition transform active:scale-95 hover:scale-105 border-4 border-slate-100 dark:border-slate-950" title="Scan QR / Barcode Produk">
           <i class="fa-solid fa-qrcode"></i>
         </button>
       </div>
 
-      <button type="button" onclick="switchTab('laporan')" id="navLaporan" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white font-bold text-[11px] transition">
-        <i class="fa-solid fa-chart-line text-lg"></i>
+      <button type="button" onclick="switchTab('laporan')" id="navLaporan" class="nav-btn flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-600 dark:hover:text-white font-bold text-[10px] sm:text-[11px] transition">
+        <i class="fa-solid fa-chart-line text-base sm:text-lg"></i>
         <span>Laporan</span>
       </button>
 
-      <button type="button" onclick="switchTab('profil')" id="navProfil" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white font-bold text-[11px] transition">
-        <i class="fa-solid fa-store text-lg"></i>
-        <span>Profil Toko</span>
+      <button type="button" onclick="switchTab('profil')" id="navProfil" class="nav-btn flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-600 dark:hover:text-white font-bold text-[10px] sm:text-[11px] transition">
+        <i class="fa-solid fa-store text-base sm:text-lg"></i>
+        <span>Profil</span>
       </button>
 
     </div>
@@ -1047,13 +1123,13 @@
       if (badge) {
         if (hasGoogleAppsScript()) {
           badge.innerText = 'GAS Native';
-          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400';
+          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
         } else if (url) {
           badge.innerText = 'API Terhubung';
-          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400';
+          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-600 dark:text-brand-400';
         } else {
           badge.innerText = 'Lokal Browser';
-          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+          badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full surface-subtle text-slate-500 dark:text-slate-400';
         }
       }
     }
@@ -1152,21 +1228,29 @@
     }
 
     function showSetupScreen() {
-      document.getElementById('setupScreen').classList.remove('hidden');
-      document.getElementById('loginScreen').classList.add('hidden');
+      const setupEl = document.getElementById('setupScreen');
+      const loginEl = document.getElementById('loginScreen');
+      if (setupEl) setupEl.classList.remove('hidden');
+      if (loginEl) loginEl.classList.add('hidden');
     }
 
     function showLoginScreen() {
-      document.getElementById('setupScreen').classList.add('hidden');
-      document.getElementById('loginScreen').classList.remove('hidden');
-      document.getElementById('loginStoreNameTitle').innerText = appState.profile.storeName || 'LAPORAN PENJUALAN';
-      document.getElementById('loginStoreLogo').src = appState.profile.photo || DEFAULT_BANNER_URL;
+      const setupEl = document.getElementById('setupScreen');
+      const loginEl = document.getElementById('loginScreen');
+      if (setupEl) setupEl.classList.add('hidden');
+      if (loginEl) loginEl.classList.remove('hidden');
+      const titleEl = document.getElementById('loginStoreNameTitle');
+      const logoEl = document.getElementById('loginStoreLogo');
+      if (titleEl) titleEl.innerText = appState.profile.storeName || 'LAPORAN PENJUALAN';
+      if (logoEl) logoEl.src = appState.profile.photo || DEFAULT_BANNER_URL;
       clearPin();
     }
 
     function showMainApp() {
-      document.getElementById('setupScreen').classList.add('hidden');
-      document.getElementById('loginScreen').classList.add('hidden');
+      const setupEl = document.getElementById('setupScreen');
+      const loginEl = document.getElementById('loginScreen');
+      if (setupEl) setupEl.classList.add('hidden');
+      if (loginEl) loginEl.classList.add('hidden');
       renderAllUI();
       if (hasGoogleAppsScript()) {
         syncDataWithCloud(true);
@@ -1345,10 +1429,10 @@
         }
         if (nav) {
           if (t === tabName) {
-            nav.classList.add('text-brand-500', 'dark:text-brand-400');
+            nav.classList.add('text-brand-600', 'dark:text-brand-400');
             nav.classList.remove('text-slate-400');
           } else {
-            nav.classList.remove('text-brand-500', 'dark:text-brand-400');
+            nav.classList.remove('text-brand-600', 'dark:text-brand-400');
             nav.classList.add('text-slate-400');
           }
         }
@@ -1439,7 +1523,7 @@
       if (profOwner) profOwner.innerText = p.ownerName || '-';
       if (profPhone) profPhone.innerText = p.phone || '-';
       if (profAddr) profAddr.innerText = p.address || '-';
-      if (profPin) profPin.innerText = isProfilePinVisible ? appState.userPIN : '••••';
+      if (profPin) profPin.innerText = isProfilePinVisible ? appState.userPIN : 'â€¢â€¢â€¢â€¢';
 
       const totalStock = appState.products.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
       const statProd = document.getElementById('profStatProducts');
@@ -1456,7 +1540,7 @@
       isProfilePinVisible = !isProfilePinVisible;
       const pinEl = document.getElementById('profilePinDisplay');
       const eyeEl = document.getElementById('profilePinEyeIcon');
-      if (pinEl) pinEl.innerText = isProfilePinVisible ? appState.userPIN : '••••';
+      if (pinEl) pinEl.innerText = isProfilePinVisible ? appState.userPIN : 'â€¢â€¢â€¢â€¢';
       if (eyeEl) eyeEl.className = isProfilePinVisible ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
     }
 
@@ -1478,7 +1562,7 @@
         const active = appState.activeCategory === cat;
         const cls = active
           ? 'px-3.5 py-1.5 rounded-xl bg-brand-600 !text-white text-[11px] font-bold whitespace-nowrap shadow-md shadow-brand-600/30 transition'
-          : 'px-3.5 py-1.5 rounded-xl glass-card text-slate-400 hover:text-white text-[11px] font-bold whitespace-nowrap transition';
+          : 'px-3.5 py-1.5 rounded-xl glass-card text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white text-[11px] font-bold whitespace-nowrap transition';
         return `<button type="button" onclick="setCategoryFilter('${escapeHtml(cat)}')" class="${cls}">${escapeHtml(cat)}</button>`;
       }).join('');
     }
@@ -1509,7 +1593,7 @@
 
       if (filtered.length === 0) {
         grid.innerHTML = `
-          <div class="col-span-2 glass-card rounded-3xl p-8 text-center space-y-2">
+          <div class="col-span-full glass-card rounded-3xl p-8 text-center space-y-2">
             <i class="fa-solid fa-box-open text-3xl text-slate-500"></i>
             <p class="text-xs font-bold text-slate-400">Belum ada barang yang sesuai.</p>
             <button type="button" onclick="switchTab('stok'); openAddProductModal();" class="mt-2 px-4 py-2 rounded-xl bg-brand-600 !text-white text-xs font-bold shadow">
@@ -1527,25 +1611,25 @@
 
         return `
           <div onclick="${outOfStock ? '' : `addToCart(${p.id})`}" class="glass-card rounded-3xl p-3.5 flex flex-col justify-between space-y-2.5 transition relative ${
-            outOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-500/50 active:scale-[0.98]'
+            outOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-500/60 active:scale-[0.98]'
           }">
             <div class="space-y-1">
               <div class="flex items-center justify-between gap-1">
-                <span class="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-slate-800/60 text-brand-400 truncate max-w-[90px]">${escapeHtml(p.category || 'Umum')}</span>
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-lg surface-subtle border text-brand-700 dark:text-brand-400 truncate max-w-[95px]">${escapeHtml(p.category || 'Umum')}</span>
                 ${qtyBadge}
               </div>
               <h4 class="text-xs font-black text-white line-clamp-2 leading-snug pt-0.5">${escapeHtml(p.name)}</h4>
               ${p.sku ? `<span class="text-[9px] font-mono text-slate-400 block truncate">${escapeHtml(p.sku)}</span>` : ''}
             </div>
 
-            <div class="pt-2 border-t border-white/5 flex items-end justify-between">
+            <div class="pt-2 border-t border-slate-200/70 dark:border-white/5 flex items-end justify-between">
               <div>
-                <span class="text-xs font-black text-brand-500 dark:text-brand-400 block">${formatRupiah(p.sellPrice)}</span>
-                <span class="text-[10px] font-bold ${outOfStock ? 'text-rose-400' : 'text-slate-400'}">
+                <span class="text-xs font-black text-brand-600 dark:text-brand-400 block">${formatRupiah(p.sellPrice)}</span>
+                <span class="text-[10px] font-bold ${outOfStock ? 'text-rose-500 dark:text-rose-400' : 'text-slate-400'}">
                   ${outOfStock ? 'Stok Habis' : `Stok: ${p.stock} ${escapeHtml(p.unit || 'Pcs')}`}
                 </span>
               </div>
-              <div class="w-7 h-7 rounded-xl ${outOfStock ? 'bg-slate-800 text-slate-600' : 'bg-brand-600 !text-white shadow-md shadow-brand-600/30'} flex items-center justify-center text-xs">
+              <div class="w-7 h-7 rounded-xl ${outOfStock ? 'surface-subtle text-slate-400' : 'bg-brand-600 !text-white shadow-md shadow-brand-600/30'} flex items-center justify-center text-xs">
                 <i class="fa-solid fa-plus"></i>
               </div>
             </div>
@@ -1657,14 +1741,14 @@
       const cartHtml = appState.cart.length === 0
         ? `<p class="text-center text-xs text-slate-400 py-10">Keranjang belanja masih kosong.</p>`
         : appState.cart.map(item => `
-            <div class="bg-slate-800/70 p-3 rounded-2xl border border-white/5 flex items-center justify-between gap-2">
+            <div class="surface-subtle p-3 rounded-2xl border flex items-center justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <h4 class="text-xs font-black !text-white truncate">${escapeHtml(item.name)}</h4>
-                <span class="text-[11px] font-bold text-brand-400">${formatRupiah(item.sellPrice)} x ${item.qty}</span>
+                <h4 class="text-xs font-black text-white truncate">${escapeHtml(item.name)}</h4>
+                <span class="text-[11px] font-bold text-brand-600 dark:text-brand-400">${formatRupiah(item.sellPrice)} x ${item.qty}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="updateCartQty(${item.id}, -1)" class="w-7 h-7 rounded-lg bg-slate-700 !text-white font-bold text-xs flex items-center justify-center hover:bg-slate-600 transition">-</button>
-                <span class="text-xs font-black !text-white w-5 text-center">${item.qty}</span>
+                <button type="button" onclick="updateCartQty(${item.id}, -1)" class="w-7 h-7 rounded-lg btn-surface font-bold text-xs flex items-center justify-center transition">-</button>
+                <span class="text-xs font-black text-white w-5 text-center">${item.qty}</span>
                 <button type="button" onclick="updateCartQty(${item.id}, 1)" class="w-7 h-7 rounded-lg bg-brand-600 !text-white font-bold text-xs flex items-center justify-center hover:bg-brand-500 transition">+</button>
               </div>
             </div>
@@ -1910,7 +1994,7 @@
         `Pelanggan: ${tx.customer || 'Umum'}`,
         `Metode  : ${tx.paymentMethod || 'Tunai'}`,
         '--------------------------------',
-        ...(tx.items || []).map(i => `• ${i.name}\n  ${i.qty} x ${formatRupiah(i.sellPrice)} = *${formatRupiah(i.qty * i.sellPrice)}*`),
+        ...(tx.items || []).map(i => `â€¢ ${i.name}\n  ${i.qty} x ${formatRupiah(i.sellPrice)} = *${formatRupiah(i.qty * i.sellPrice)}*`),
         '--------------------------------',
         `*TOTAL TAGIHAN : ${formatRupiah(tx.totalAmount)}*`,
         `Uang Diterima : ${formatRupiah(tx.cashReceived || tx.totalAmount)}`,
@@ -1980,7 +2064,7 @@
       if (isLive) {
         if (overlay) overlay.classList.add('hidden');
         if (guide) guide.classList.remove('hidden');
-        if (permLabel) permLabel.innerText = 'Kamera Live Aktif • Memindai...';
+        if (permLabel) permLabel.innerText = 'Kamera Live Aktif â€¢ Memindai...';
       } else {
         if (overlay) overlay.classList.remove('hidden');
         if (guide) guide.classList.add('hidden');
@@ -2308,7 +2392,7 @@
 
       if (subEl) {
         const totalUnits = appState.products.reduce((s, p) => s + (Number(p.stock) || 0), 0);
-        subEl.innerText = `${appState.products.length} Produk • Total ${totalUnits} Unit Stok`;
+        subEl.innerText = `${appState.products.length} Produk â€¢ Total ${totalUnits} Unit Stok`;
       }
 
       if (filtered.length === 0) {
@@ -2324,45 +2408,45 @@
       listEl.innerHTML = filtered.map(p => {
         const profit = Number(p.sellPrice) - Number(p.buyPrice);
         return `
-          <div class="glass-card rounded-3xl p-4 flex flex-col justify-between space-y-3 border border-white/5">
+          <div class="glass-card rounded-3xl p-4 flex flex-col justify-between space-y-3">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 mb-1">
-                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-slate-800/70 text-brand-400">${escapeHtml(p.category || 'Umum')}</span>
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-lg surface-subtle border text-brand-700 dark:text-brand-400">${escapeHtml(p.category || 'Umum')}</span>
                   ${p.sku ? `<span class="text-[9px] font-mono text-slate-400 truncate">${escapeHtml(p.sku)}</span>` : ''}
                 </div>
                 <h4 class="text-xs font-black text-white leading-snug">${escapeHtml(p.name)}</h4>
               </div>
               <span class="px-2.5 py-1 rounded-xl text-[10px] font-black shrink-0 ${
-                Number(p.stock) <= 5 ? 'bg-rose-500/15 text-rose-400' : 'bg-emerald-500/15 text-emerald-400'
+                Number(p.stock) <= 5 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
               }">
                 Stok: ${p.stock} ${escapeHtml(p.unit || 'Pcs')}
               </span>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/5 text-[10px]">
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/70 dark:border-white/5 text-[10px]">
               <div>
                 <span class="text-slate-400 block">Modal</span>
                 <span class="font-bold text-slate-300 font-mono">${formatRupiah(p.buyPrice)}</span>
               </div>
               <div>
                 <span class="text-slate-400 block">Harga Jual</span>
-                <span class="font-black text-brand-400 font-mono">${formatRupiah(p.sellPrice)}</span>
+                <span class="font-black text-brand-600 dark:text-brand-400 font-mono">${formatRupiah(p.sellPrice)}</span>
               </div>
               <div>
                 <span class="text-slate-400 block">Profit/Unit</span>
-                <span class="font-bold text-emerald-400 font-mono">${formatRupiah(profit)}</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">${formatRupiah(profit)}</span>
               </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-1">
-              <button type="button" onclick="openQrStickerModal(${p.id})" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 !text-brand-400 text-[11px] font-bold flex items-center gap-1 transition" title="Cetak / Download QR">
+              <button type="button" onclick="openQrStickerModal(${p.id})" class="px-3 py-1.5 rounded-xl btn-surface text-brand-600 dark:text-brand-400 text-[11px] font-bold flex items-center gap-1 transition" title="Cetak / Download QR">
                 <i class="fa-solid fa-qrcode"></i> QR
               </button>
-              <button type="button" onclick="openEditProductModal(${p.id})" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 !text-white text-[11px] font-bold flex items-center gap-1 transition">
+              <button type="button" onclick="openEditProductModal(${p.id})" class="px-3 py-1.5 rounded-xl btn-surface text-[11px] font-bold flex items-center gap-1 transition">
                 <i class="fa-solid fa-pen"></i> Edit
               </button>
-              <button type="button" onclick="confirmDeleteProduct(${p.id})" class="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-400 hover:!text-white text-[11px] font-bold transition">
+              <button type="button" onclick="confirmDeleteProduct(${p.id})" class="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:!text-white text-[11px] font-bold transition">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -2774,7 +2858,7 @@
         if (key === filterType) {
           btn.className = 'py-2 rounded-xl bg-brand-600 !text-white shadow-md';
         } else {
-          btn.className = 'py-2 rounded-xl text-slate-400 hover:text-white';
+          btn.className = 'py-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white';
         }
       });
 
@@ -2880,15 +2964,15 @@
           topListEl.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Belum ada penjualan pada periode ini.</p>`;
         } else {
           topListEl.innerHTML = sortedItems.map((it, idx) => `
-            <div class="flex items-center justify-between p-2.5 rounded-2xl bg-slate-800/40 border border-white/5 text-xs">
+            <div class="flex items-center justify-between p-2.5 rounded-2xl surface-subtle border text-xs">
               <div class="flex items-center gap-2.5 min-w-0">
-                <span class="w-6 h-6 rounded-lg bg-brand-600/20 text-brand-400 font-black text-[11px] flex items-center justify-center shrink-0">${idx + 1}</span>
+                <span class="w-6 h-6 rounded-lg bg-brand-600/15 text-brand-700 dark:text-brand-400 font-black text-[11px] flex items-center justify-center shrink-0">${idx + 1}</span>
                 <div class="min-w-0">
                   <span class="font-bold text-white block truncate">${escapeHtml(it.name)}</span>
                   <span class="text-[10px] text-slate-400">${it.qty} unit terjual</span>
                 </div>
               </div>
-              <span class="font-black text-brand-400 font-mono shrink-0">${formatRupiah(it.revenue)}</span>
+              <span class="font-black text-brand-600 dark:text-brand-400 font-mono shrink-0">${formatRupiah(it.revenue)}</span>
             </div>
           `).join('');
         }
@@ -2900,7 +2984,7 @@
         if (filteredTx.length === 0) {
           txListEl.innerHTML = `
             <div class="glass-card rounded-3xl p-8 text-center space-y-1">
-              <i class="fa-solid fa-receipt text-2xl text-slate-500"></i>
+              <i class="fa-solid fa-receipt text-2xl text-slate-400"></i>
               <p class="text-xs font-bold text-slate-400">Belum ada riwayat transaksi pada periode ini.</p>
             </div>
           `;
@@ -2908,23 +2992,23 @@
           txListEl.innerHTML = filteredTx.map(tx => {
             const itemsSummary = (tx.items || []).map(i => `${i.name} (${i.qty}x)`).join(', ');
             return `
-              <div onclick="openReceiptById('${escapeHtml(tx.id)}')" class="glass-card rounded-3xl p-4 space-y-2.5 cursor-pointer hover:border-brand-500/40 transition">
+              <div onclick="openReceiptById('${escapeHtml(tx.id)}')" class="glass-card rounded-3xl p-4 space-y-2.5 cursor-pointer hover:border-brand-500/50 transition">
                 <div class="flex items-center justify-between gap-2">
                   <div>
                     <span class="text-xs font-black font-mono text-white">${escapeHtml(tx.id)}</span>
-                    <span class="text-[10px] text-slate-400 block">${escapeHtml(tx.time)} • ${escapeHtml(tx.customer || 'Umum')}</span>
+                    <span class="text-[10px] text-slate-400 block">${escapeHtml(tx.time)} â€¢ ${escapeHtml(tx.customer || 'Umum')}</span>
                   </div>
-                  <span class="px-2.5 py-1 rounded-xl bg-brand-500/15 text-brand-400 text-[10px] font-black">${escapeHtml(tx.paymentMethod || 'Tunai')}</span>
+                  <span class="px-2.5 py-1 rounded-xl bg-brand-500/15 text-brand-700 dark:text-brand-400 text-[10px] font-black">${escapeHtml(tx.paymentMethod || 'Tunai')}</span>
                 </div>
 
-                <p class="text-[11px] text-slate-300 line-clamp-1 bg-slate-800/40 px-3 py-1.5 rounded-xl">${escapeHtml(itemsSummary || '-')}</p>
+                <p class="text-[11px] text-slate-300 line-clamp-1 surface-subtle border px-3 py-1.5 rounded-xl">${escapeHtml(itemsSummary || '-')}</p>
 
                 <div class="flex items-center justify-between pt-1">
                   <div>
-                    <span class="text-xs font-black text-brand-400">${formatRupiah(tx.totalAmount)}</span>
-                    <span class="text-[10px] text-emerald-400 font-bold ml-2">+Profit ${formatRupiah(tx.totalProfit)}</span>
+                    <span class="text-xs font-black text-brand-600 dark:text-brand-400">${formatRupiah(tx.totalAmount)}</span>
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-2">+Profit ${formatRupiah(tx.totalProfit)}</span>
                   </div>
-                  <button type="button" onclick="event.stopPropagation(); shareTxWaById('${escapeHtml(tx.id)}');" class="px-2.5 py-1 rounded-xl bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:!text-white text-[10px] font-bold flex items-center gap-1 transition">
+                  <button type="button" onclick="event.stopPropagation(); shareTxWaById('${escapeHtml(tx.id)}');" class="px-2.5 py-1 rounded-xl bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 hover:!text-white text-[10px] font-bold flex items-center gap-1 transition">
                     <i class="fa-brands fa-whatsapp"></i> Kirim WA
                   </button>
                 </div>
@@ -2932,6 +3016,208 @@
             `;
           }).join('');
         }
+      }
+    }
+
+    function getReportPeriodLabel() {
+      const filter = appState.reportFilter;
+      if (filter === 'hari') {
+        return `Hari Ini (${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })})`;
+      }
+      if (filter === 'bulan') {
+        return `Bulan Ini (${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`;
+      }
+      if (filter === 'custom') {
+        const s = document.getElementById('reportStartDate')?.value || '-';
+        const e = document.getElementById('reportEndDate')?.value || '-';
+        return `Periode Custom (${s} s/d ${e})`;
+      }
+      return 'Semua Periode';
+    }
+
+    function exportReportPdf() {
+      const filteredTx = getFilteredTransactions();
+      if (filteredTx.length === 0) {
+        showToast('Tidak ada data transaksi pada periode ini untuk diunduh sebagai PDF.', 'error');
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('Library PDF sedang dimuat, coba sesaat lagi.', 'error');
+        return;
+      }
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const p = appState.profile;
+        const periodLabel = getReportPeriodLabel();
+
+        // Hitung ringkasan
+        let totalOmset = 0;
+        let totalCost = 0;
+        let totalProfit = 0;
+        let totalUnits = 0;
+        const itemMap = {};
+
+        filteredTx.forEach(tx => {
+          totalOmset += Number(tx.totalAmount || 0);
+          totalCost += Number(tx.totalCost || 0);
+          totalProfit += Number(tx.totalProfit || 0);
+          (tx.items || []).forEach(it => {
+            const q = Number(it.qty || 0);
+            totalUnits += q;
+            const k = it.name || 'Produk';
+            if (!itemMap[k]) itemMap[k] = { name: k, qty: 0, revenue: 0 };
+            itemMap[k].qty += q;
+            itemMap[k].revenue += q * Number(it.sellPrice || 0);
+          });
+        });
+
+        const marginPct = totalOmset > 0 ? Math.round((totalProfit / totalOmset) * 100) : 0;
+
+        // Header Kop Toko
+        doc.setFillColor(13, 148, 136);
+        doc.rect(0, 0, 210, 34, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.text((p.storeName || 'LAPORAN PENJUALAN').toUpperCase(), 14, 14);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.text(`${p.storeSubtitle || 'Kasir & Manajemen Toko'} | Telp/WA: ${p.phone || '-'}`, 14, 21);
+        doc.text(`Alamat: ${p.address || '-'}`, 14, 27);
+
+        // Info Judul Laporan & Periode
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('LAPORAN PENJUALAN & KEUNTUNGAN', 14, 44);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Periode : ${periodLabel}`, 14, 50);
+        doc.text(`Dicetak : ${new Date().toLocaleString('id-ID')}`, 14, 55);
+
+        // Kotak Ringkasan Keuangan
+        doc.setFillColor(241, 245, 249);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(14, 60, 182, 24, 3, 3, 'FD');
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('TOTAL OMSET', 20, 67);
+        doc.text('MODAL (HPP)', 68, 67);
+        doc.text('KEUNTUNGAN BERSIH', 114, 67);
+        doc.text('TRANSAKSI / UNIT', 162, 67);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.setTextColor(13, 148, 136);
+        doc.text(formatRupiah(totalOmset), 20, 75);
+
+        doc.setTextColor(30, 41, 59);
+        doc.text(formatRupiah(totalCost), 68, 75);
+
+        doc.setTextColor(5, 150, 105);
+        doc.text(`${formatRupiah(totalProfit)} (${marginPct}%)`, 114, 75);
+
+        doc.setTextColor(30, 41, 59);
+        doc.text(`${filteredTx.length} Trx / ${totalUnits} Unit`, 162, 75);
+
+        // Tabel 1: Rincian Penjualan Per Barang
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text('1. Rincian Penjualan Per Produk', 14, 94);
+
+        const topRows = Object.values(itemMap)
+          .sort((a, b) => b.qty - a.qty)
+          .map((item, index) => [
+            index + 1,
+            item.name,
+            `${item.qty} Unit`,
+            formatRupiah(item.revenue)
+          ]);
+
+        doc.autoTable({
+          startY: 97,
+          head: [['No', 'Nama Produk', 'Terjual', 'Total Pendapatan']],
+          body: topRows,
+          theme: 'grid',
+          headStyles: { fillColor: [15, 118, 110], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+          bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+          columnStyles: {
+            0: { cellWidth: 12, halign: 'center' },
+            2: { cellWidth: 28, halign: 'center' },
+            3: { cellWidth: 42, halign: 'right' }
+          },
+          margin: { left: 14, right: 14 }
+        });
+
+        // Tabel 2: Riwayat Transaksi
+        const afterFirstTableY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 120) + 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text('2. Riwayat Transaksi Penjualan', 14, afterFirstTableY);
+
+        const txRows = filteredTx.map((tx, idx) => {
+          const itemsDesc = (tx.items || []).map(i => `${i.name} (${i.qty}x)`).join(', ');
+          return [
+            idx + 1,
+            tx.id,
+            tx.time,
+            tx.customer || 'Umum',
+            tx.paymentMethod || 'Tunai',
+            itemsDesc || '-',
+            formatRupiah(tx.totalAmount),
+            formatRupiah(tx.totalProfit)
+          ];
+        });
+
+        doc.autoTable({
+          startY: afterFirstTableY + 3,
+          head: [['No', 'No Struk', 'Waktu', 'Pelanggan', 'Metode', 'Detail Barang', 'Omset', 'Profit']],
+          body: txRows,
+          theme: 'striped',
+          headStyles: { fillColor: [13, 148, 136], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+          bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+          columnStyles: {
+            0: { cellWidth: 9, halign: 'center' },
+            1: { cellWidth: 26 },
+            2: { cellWidth: 24 },
+            3: { cellWidth: 22 },
+            4: { cellWidth: 16, halign: 'center' },
+            6: { cellWidth: 23, halign: 'right' },
+            7: { cellWidth: 22, halign: 'right' }
+          },
+          margin: { left: 14, right: 14 }
+        });
+
+        // Nomor halaman di footer setiap halaman
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text(
+            `Halaman ${i} dari ${pageCount} â€¢ ${p.storeName || 'LAPORAN PENJUALAN'}`,
+            105,
+            290,
+            { align: 'center' }
+          );
+        }
+
+        const fileName = `Laporan-Penjualan-${new Date().toISOString().slice(0, 10)}.pdf`;
+        doc.save(fileName);
+        showToast('Laporan PDF berhasil diunduh!', 'success');
+      } catch (err) {
+        console.error('Gagal membuat PDF:', err);
+        showToast('Gagal membuat file PDF: ' + (err.message || err), 'error');
       }
     }
 
